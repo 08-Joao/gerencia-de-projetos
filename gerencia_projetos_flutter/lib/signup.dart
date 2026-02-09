@@ -17,10 +17,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _enrollmentController = TextEditingController();
   late MaskTextInputFormatter _phoneMask;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  String _selectedRole = 'participante';
 
   @override
   void initState() {
@@ -38,6 +40,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _enrollmentController.dispose();
     super.dispose();
   }
 
@@ -80,6 +83,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
           name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           phone: _phoneController.text.trim(),
+          institution: 'Universidade Federal de Ouro Preto – UFOP',
+          enrollment: _enrollmentController.text.trim().isEmpty
+              ? null
+              : _enrollmentController.text.trim(),
+          userType: _selectedRole,
         );
 
         if (mounted) {
@@ -236,6 +244,57 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       return null;
                     },
                   ),
+                  const SizedBox(height: 16),
+
+                  TextFormField(
+                    controller: _enrollmentController,
+                    decoration: InputDecoration(
+                      labelText: 'Matrícula (Opcional)',
+                      hintText: 'Seu número de matrícula',
+                      prefixIcon: const Icon(Icons.badge_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  DropdownButtonFormField<String>(
+                    value: _selectedRole,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: 'Tipo de Conta',
+                      hintText: 'Selecione seu tipo de conta',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'participante',
+                        child: Text('Participante'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'palestrante',
+                        child: Text('Palestrante'),
+                      ),
+                    ],
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _selectedRole = newValue ?? 'participante';
+                      });
+                    },
+                  ),
+                  if (_selectedRole == 'palestrante')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        'Sua conta será criada com status pendente e necessitará de aprovação.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 16),
 
                   TextFormField(

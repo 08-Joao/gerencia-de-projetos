@@ -9,17 +9,25 @@ class UserService {
     required String name,
     required String email,
     required String phone,
+    String? institution,
+    String? enrollment,
+    String userType = 'participante',
   }) async {
     try {
       User? currentUser = _auth.currentUser;
       if (currentUser != null) {
+        final status = userType == 'palestrante' ? 'pendente' : 'ativo';
         await _firestore.collection('users').doc(currentUser.uid).set({
           'uid': currentUser.uid,
-          'name': name,
+          'nome': name,
           'email': email,
           'phone': phone,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
+          'instituicao': institution,
+          'matricula': enrollment,
+          'tipo': userType,
+          'status': status,
+          'criadoEm': FieldValue.serverTimestamp(),
+          'atualizadoEm': FieldValue.serverTimestamp(),
         });
       }
     } catch (e) {
@@ -55,8 +63,8 @@ class UserService {
       User? currentUser = _auth.currentUser;
       if (currentUser != null) {
         await _firestore.collection('users').doc(currentUser.uid).update({
-          'name': name,
-          'updatedAt': FieldValue.serverTimestamp(),
+          'nome': name,
+          'atualizadoEm': FieldValue.serverTimestamp(),
         });
       }
     } catch (e) {
