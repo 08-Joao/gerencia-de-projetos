@@ -51,10 +51,14 @@ class FirestoreService {
           .collection('atividades')
           .where('eventoId', isEqualTo: eventoId)
           .where('publicada', isEqualTo: true)
-          .orderBy('data')
-          .orderBy('horaInicio')
           .get();
-      return snapshot.docs.map((doc) => AtividadeModel.fromFirestore(doc)).toList();
+      final atividades = snapshot.docs.map((doc) => AtividadeModel.fromFirestore(doc)).toList();
+      atividades.sort((a, b) {
+        final dataCompare = a.data.compareTo(b.data);
+        if (dataCompare != 0) return dataCompare;
+        return a.horaInicio.compareTo(b.horaInicio);
+      });
+      return atividades;
     } catch (e) {
       print('Erro ao buscar atividades: $e');
       return [];
@@ -210,9 +214,10 @@ class FirestoreService {
           .collection('perguntas')
           .where('atividadeId', isEqualTo: atividadeId)
           .where('status', isEqualTo: 'aprovada')
-          .orderBy('criadaEm', descending: true)
           .get();
-      return snapshot.docs.map((doc) => PerguntaModel.fromFirestore(doc)).toList();
+      final perguntas = snapshot.docs.map((doc) => PerguntaModel.fromFirestore(doc)).toList();
+      perguntas.sort((a, b) => b.criadaEm.compareTo(a.criadaEm));
+      return perguntas;
     } catch (e) {
       print('Erro ao buscar perguntas: $e');
       return [];

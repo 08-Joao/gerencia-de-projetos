@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/event_provider.dart';
-import '../providers/checkin_provider.dart';
 import '../models/user_model.dart';
 import 'programming_screen.dart';
 import 'agenda_screen.dart';
@@ -111,10 +110,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDashboard(UsuarioModel user) {
-    return Consumer2<EventProvider, CheckinProvider>(
-      builder: (context, eventProvider, checkinProvider, _) {
-        final evento = eventProvider.eventoAtual;
-
+    return Consumer<EventProvider>(
+      builder: (context, eventProvider, _) {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -128,106 +125,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
               ),
               const SizedBox(height: 24),
-              if (evento != null) ...[
-                _buildCheckInCard(context, user, evento),
+              if (user.tipo == UserType.admin) ...[
+                _buildAdminCard(context),
+                const SizedBox(height: 24),
+              ],
+              if (user.tipo == UserType.palestrante) ...[
+                _buildSpeakerCard(context, user),
                 const SizedBox(height: 24),
               ],
               _buildQuickStats(context, user),
               const SizedBox(height: 24),
-              if (user.tipo == UserType.palestrante)
-                _buildSpeakerCard(context, user),
-              if (user.tipo == UserType.admin)
-                _buildAdminCard(context),
+              _buildEventStats(context, eventProvider),
+              const SizedBox(height: 24),
+              _buildUserStats(context, user),
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildCheckInCard(BuildContext context, UsuarioModel user, dynamic evento) {
-    return Consumer<CheckinProvider>(
-      builder: (context, checkinProvider, _) {
-        return Card(
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Semana da Computação',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Faça check-in para confirmar sua presença',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: checkinProvider.hasCheckedIn
-                        ? null
-                        : () => _performCheckin(context, user, evento),
-                    icon: Icon(
-                      checkinProvider.hasCheckedIn
-                          ? Icons.check_circle
-                          : Icons.qr_code_2,
-                    ),
-                    label: Text(
-                      checkinProvider.hasCheckedIn
-                          ? 'Check-in Realizado'
-                          : 'Fazer Check-in',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _performCheckin(
-    BuildContext context,
-    UsuarioModel user,
-    dynamic evento,
-  ) async {
-    final checkinProvider = context.read<CheckinProvider>();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar Check-in'),
-        content: const Text('Deseja confirmar sua presença no evento?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await checkinProvider.performCheckin(
-                usuarioId: user.uid,
-                eventoId: evento.id,
-                atividadeId: null,
-              );
-              if (mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Check-in realizado com sucesso!')),
-                );
-              }
-            },
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -254,11 +168,12 @@ class _HomeScreenState extends State<HomeScreen> {
               itemCount: atividades.length,
               itemBuilder: (context, index) {
                 final atividade = atividades[index];
+                final horaInicio = '${atividade.horaInicio.hour.toString().padLeft(2, '0')}:${atividade.horaInicio.minute.toString().padLeft(2, '0')}';
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
                     title: Text(atividade.titulo),
-                    subtitle: Text(atividade.palestranteNome),
+                    subtitle: Text('${atividade.palestranteNome} • $horaInicio'),
                     trailing: const Icon(Icons.arrow_forward),
                     onTap: () {
                       Navigator.push(
@@ -368,6 +283,219 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildEventStats(BuildContext context, EventProvider eventProvider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Informações do Evento',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    children: [
+                      Text(
+                        '${eventProvider.atividades.length}',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Atividades',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    children: [
+                      Text(
+                        '${eventProvider.eventos.length}',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Eventos',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUserStats(BuildContext context, UsuarioModel user) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Seu Perfil',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Center(
+                        child: Text(
+                          user.nome.isNotEmpty ? user.nome[0].toUpperCase() : '?',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.nome,
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            user.email,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(user.status).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _getStatusLabel(user.status),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: _getStatusColor(user.status),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Divider(color: Colors.grey[300]),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatItem(context, Icons.person, 'Tipo', _getUserTypeLabel(user.tipo)),
+                    _buildStatItem(context, Icons.check_circle, 'Status', _getStatusLabel(user.status)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatItem(BuildContext context, IconData icon, String label, String value) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.blue, size: 24),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+      ],
+    );
+  }
+
+  Color _getStatusColor(UserStatus status) {
+    switch (status) {
+      case UserStatus.ativo:
+        return Colors.green;
+      case UserStatus.pendente:
+        return Colors.orange;
+      case UserStatus.recusado:
+        return Colors.red;
+    }
+  }
+
+  String _getStatusLabel(UserStatus status) {
+    switch (status) {
+      case UserStatus.ativo:
+        return 'Ativo';
+      case UserStatus.pendente:
+        return 'Pendente';
+      case UserStatus.recusado:
+        return 'Recusado';
+    }
+  }
+
+  String _getUserTypeLabel(UserType tipo) {
+    switch (tipo) {
+      case UserType.admin:
+        return 'Administrador';
+      case UserType.palestrante:
+        return 'Palestrante';
+      case UserType.participante:
+        return 'Participante';
+    }
   }
 }
 

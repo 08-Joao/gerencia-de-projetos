@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 import '../providers/admin_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/event_provider.dart';
 import '../models/user_model.dart';
+import '../models/event_model.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({Key? key}) : super(key: key);
@@ -63,44 +65,46 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   Widget _buildTabBar() {
     return Container(
       color: Colors.grey[100],
-      child: Row(
-        children: [
-          _buildTab(0, 'Dashboard'),
-          _buildTab(1, 'Palestrantes'),
-          _buildTab(2, 'Perguntas'),
-          _buildTab(3, 'Avisos'),
-          _buildTab(4, 'Admins'),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildTab(0, 'Dashboard'),
+            _buildTab(1, 'Eventos'),
+            _buildTab(2, 'Palestrantes'),
+            _buildTab(3, 'Perguntas'),
+            _buildTab(4, 'Avisos'),
+            _buildTab(5, 'Admins'),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTab(int index, String label) {
     final isSelected = _selectedTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedTab = index;
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: isSelected ? Colors.blue : Colors.transparent,
-                width: 3,
-              ),
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedTab = index;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: isSelected ? Colors.blue : Colors.transparent,
+              width: 3,
             ),
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? Colors.blue : Colors.grey[600],
-            ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.blue : Colors.grey[600],
           ),
         ),
       ),
@@ -112,12 +116,14 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       case 0:
         return _buildDashboard(adminProvider);
       case 1:
-        return _buildSpeakersTab(adminProvider);
+        return _buildEventosTab();
       case 2:
-        return _buildQuestionsTab(adminProvider);
+        return _buildSpeakersTab(adminProvider);
       case 3:
-        return _buildNoticesTab();
+        return _buildQuestionsTab(adminProvider);
       case 4:
+        return _buildNoticesTab();
+      case 5:
         return _buildAdminManagementTab(adminProvider);
       default:
         return const SizedBox.shrink();
@@ -226,6 +232,182 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildEventosTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Criar Novo Evento',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 16),
+          _buildEventForm(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEventForm() {
+    final nomeController = TextEditingController();
+    final descricaoController = TextEditingController();
+    DateTime dataInicio = DateTime.now();
+    DateTime dataFim = DateTime.now().add(const Duration(days: 1));
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: nomeController,
+              decoration: InputDecoration(
+                labelText: 'Nome do Evento',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descricaoController,
+              decoration: InputDecoration(
+                labelText: 'Descrição',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: dataInicio,
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (date != null) {
+                  setState(() {
+                    dataInicio = date;
+                  });
+                }
+              },
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Data de Início',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  '${dataInicio.day}/${dataInicio.month}/${dataInicio.year}',
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: dataFim,
+                  firstDate: dataInicio,
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (date != null) {
+                  setState(() {
+                    dataFim = date;
+                  });
+                }
+              },
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Data de Fim',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  '${dataFim.day}/${dataFim.month}/${dataFim.year}',
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Consumer<EventProvider>(
+              builder: (context, eventProvider, _) {
+                return SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _createEvent(
+                      context,
+                      eventProvider,
+                      nomeController.text,
+                      descricaoController.text,
+                      dataInicio,
+                      dataFim,
+                    ),
+                    child: const Text('Criar Evento'),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _createEvent(
+    BuildContext context,
+    EventProvider eventProvider,
+    String nome,
+    String descricao,
+    DateTime dataInicio,
+    DateTime dataFim,
+  ) async {
+    if (nome.isEmpty || descricao.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preencha todos os campos')),
+      );
+      return;
+    }
+
+    if (dataFim.isBefore(dataInicio)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data de fim deve ser após data de início')),
+      );
+      return;
+    }
+
+    try {
+      final evento = EventoModel(
+        id: const Uuid().v4(),
+        nome: nome,
+        descricao: descricao,
+        dataInicio: dataInicio,
+        dataFim: dataFim,
+        ativo: true,
+      );
+
+      await eventProvider.createEvento(evento);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Evento criado com sucesso')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao criar evento: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildSpeakersTab(AdminProvider adminProvider) {
@@ -478,37 +660,60 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   ) async {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         final motivoController = TextEditingController();
-        return AlertDialog(
-          title: const Text('Recusar Palestrante'),
-          content: TextField(
-            controller: motivoController,
-            decoration: const InputDecoration(
-              labelText: 'Motivo da recusa',
-              border: OutlineInputBorder(),
+        return Dialog(
+          insetPadding: const EdgeInsets.all(12),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Recusar Palestrante',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: motivoController,
+                  decoration: InputDecoration(
+                    labelText: 'Motivo da recusa',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Cancelar'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await adminProvider.rejectSpeaker(uid, motivoController.text);
+                        if (mounted) {
+                          Navigator.pop(dialogContext);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Palestrante recusado')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      child: const Text('Recusar'),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            maxLines: 3,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await adminProvider.rejectSpeaker(uid, motivoController.text);
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Palestrante recusado')),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Recusar'),
-            ),
-          ],
         );
       },
     );
@@ -519,9 +724,11 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     AdminProvider adminProvider,
     String perguntaId,
   ) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     await adminProvider.approvePergunta(perguntaId);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Pergunta aprovada')),
       );
     }
@@ -578,26 +785,35 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     String autorId,
   ) async {
     final adminProvider = context.read<AdminProvider>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     if (titulo.isEmpty || mensagem.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Preencha todos os campos')),
       );
       return;
     }
 
-    await adminProvider.sendAviso(
-      titulo: titulo,
-      mensagem: mensagem,
-      tipo: tipo,
-      destinatarios: ['todos'],
-      autorId: autorId,
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aviso enviado')),
+    try {
+      await adminProvider.sendAviso(
+        titulo: titulo,
+        mensagem: mensagem,
+        tipo: tipo,
+        destinatarios: ['todos'],
+        autorId: autorId,
       );
+
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('Aviso enviado com sucesso')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('Erro ao enviar aviso: $e')),
+        );
+      }
     }
   }
 

@@ -107,8 +107,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             _buildInfoRow('Email', user.email),
             const Divider(),
-            _buildInfoRow('Instituição', user.instituicao ?? 'Não informado'),
-            const Divider(),
             _buildInfoRow(
               'Status',
               _getStatusLabel(user.status),
@@ -253,19 +251,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Sair'),
         content: const Text('Deseja sair da aplicação?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () async {
+              Navigator.pop(dialogContext);
               await userProvider.signOut();
               if (mounted) {
-                Navigator.pop(context);
                 Navigator.of(context).pushReplacementNamed('/signin');
               }
             },

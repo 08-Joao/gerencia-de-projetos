@@ -23,7 +23,17 @@ class _SpeakerManagementScreenState extends State<SpeakerManagementScreen> {
   void initState() {
     super.initState();
     _firestoreService = FirestoreService();
-    _loadMinhasPalestras();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialData();
+    });
+  }
+
+  Future<void> _loadInitialData() async {
+    final eventProvider = context.read<EventProvider>();
+    if (eventProvider.eventoAtual == null) {
+      await eventProvider.loadEventos();
+    }
+    await _loadMinhasPalestras();
   }
 
   Future<void> _loadMinhasPalestras() async {
@@ -190,18 +200,20 @@ class _SpeakerManagementScreenState extends State<SpeakerManagementScreen> {
   void _showCreateActivityDialog() {
     showDialog(
       context: context,
-      builder: (context) => _ActivityFormDialog(
+      builder: (dialogContext) => _ActivityFormDialog(
         onSave: (atividade) async {
           try {
             await _firestoreService.createAtividade(atividade);
             if (mounted) {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               await _loadMinhasPalestras();
               final eventProvider = context.read<EventProvider>();
               await eventProvider.loadAtividades(atividade.eventoId);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Palestra criada com sucesso')),
-              );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Palestra criada com sucesso')),
+                );
+              }
             }
           } catch (e) {
             if (mounted) {
@@ -551,6 +563,13 @@ class _ActivityFormDialogState extends State<_ActivityFormDialog> {
       return;
     }
 
+    if (eventProvider.eventoAtual == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nenhum evento disponível. Tente novamente.')),
+      );
+      return;
+    }
+
     final horaInicio = DateTime(
       _dataInicio.year,
       _dataInicio.month,
@@ -575,7 +594,7 @@ class _ActivityFormDialogState extends State<_ActivityFormDialog> {
 
     final atividade = AtividadeModel(
       id: widget.initialActivity?.id ?? const Uuid().v4(),
-      eventoId: eventProvider.eventoAtual?.id ?? '',
+      eventoId: eventProvider.eventoAtual!.id,
       titulo: _tituloController.text,
       descricao: _descricaoController.text,
       palestranteId: userProvider.currentUser!.uid,
@@ -589,7 +608,7 @@ class _ActivityFormDialogState extends State<_ActivityFormDialog> {
       ),
       tags: tags,
       capacidade: null,
-      publicada: _publicada || widget.initialActivity == null ? true : _publicada,
+      publicada: widget.initialActivity == null ? true : _publicada,
       materialApoio: null,
     );
 

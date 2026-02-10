@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../services/firestore_service.dart';
 import '../models/notificacao_model.dart';
+import '../models/aviso_model.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
@@ -14,13 +15,16 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   late FirestoreService _firestoreService;
   List<NotificacaoModel> _notificacoes = [];
+  List<AvisoModel> _avisos = [];
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _firestoreService = FirestoreService();
-    _loadNotificacoes();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadNotificacoes();
+    });
   }
 
   Future<void> _loadNotificacoes() async {
@@ -32,8 +36,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
 
     try {
-      _notificacoes = await _firestoreService
+      final notificacoes = await _firestoreService
           .getNotificacoes(userProvider.currentUser!.uid);
+      final avisos = await _firestoreService.getAvisos();
+      
+      setState(() {
+        _notificacoes = notificacoes;
+        _avisos = avisos;
+      });
     } catch (e) {
       print('Erro ao carregar notificações: $e');
     } finally {
@@ -45,6 +55,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final allItems = <dynamic>[..._avisos, ..._notificacoes];
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Avisos e Notificações'),
@@ -52,7 +64,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _notificacoes.isEmpty
+          : allItems.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -72,10 +84,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(12),
-                  itemCount: _notificacoes.length,
+                  itemCount: allItems.length,
                   itemBuilder: (context, index) {
-                    final notificacao = _notificacoes[index];
-                    return _buildNotificationCard(context, notificacao);
+                    final item = allItems[index];
+                    if (item is AvisoModel) {
+                      return _buildAvisoCard(context, item);
+                    } else {
+                      return _buildNotificationCard(context, item as NotificacaoModel);
+                    }
                   },
                 ),
     );
@@ -159,6 +175,74 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             const SizedBox(height: 8),
             Text(
               notificacao.mensagem,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvisoCard(BuildContext context, AvisoModel aviso) {
+    final tipoCorMap = {
+      TipoAviso.urgente: Colors.red,
+      TipoAviso.normal: Colors.blue,
+      TipoAviso.informativo: Colors.green,
+    };
+
+    final tipoIconMap = {
+      TipoAviso.urgente: Icons.warning,
+      TipoAviso.normal: Icons.info,
+      TipoAviso.informativo: Icons.announcement,
+    };
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: tipoCorMap[aviso.tipo],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    tipoIconMap[aviso.tipo],
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        aviso.titulo,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatarData(aviso.criadoEm),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              aviso.mensagem,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

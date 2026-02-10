@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/event_provider.dart';
+import '../providers/agenda_provider.dart';
+import '../providers/user_provider.dart';
 import '../models/activity_model.dart';
 
 class ProgrammingScreen extends StatefulWidget {
@@ -14,6 +16,26 @@ class _ProgrammingScreenState extends State<ProgrammingScreen> {
   String? _selectedTipo;
   String? _selectedTag;
   String? _selectedPalestrante;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _reloadActivities();
+    });
+  }
+
+  Future<void> _reloadActivities() async {
+    final eventProvider = context.read<EventProvider>();
+    
+    if (eventProvider.eventoAtual == null) {
+      await eventProvider.loadEventos();
+    }
+    
+    if (eventProvider.eventoAtual != null) {
+      await eventProvider.loadAtividades(eventProvider.eventoAtual!.id);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +86,8 @@ class _ProgrammingScreenState extends State<ProgrammingScreen> {
                 onSelected: (selected) {
                   setState(() {
                     _selectedTipo = selected ? 'palestra' : null;
+                    _selectedTag = null;
+                    _selectedPalestrante = null;
                   });
                   if (selected) {
                     eventProvider.filterByTipo('palestra');
@@ -77,7 +101,13 @@ class _ProgrammingScreenState extends State<ProgrammingScreen> {
                 selected: _selectedTipo == 'minicurso',
                 onSelected: (selected) {
                   setState(() {
-                    _selectedTipo = selected ? 'minicurso' : null;
+                    if (selected) {
+                      _selectedTipo = 'minicurso';
+                    } else {
+                      _selectedTipo = null;
+                    }
+                    _selectedTag = null;
+                    _selectedPalestrante = null;
                   });
                   if (selected) {
                     eventProvider.filterByTipo('minicurso');
@@ -91,7 +121,13 @@ class _ProgrammingScreenState extends State<ProgrammingScreen> {
                 selected: _selectedTipo == 'workshop',
                 onSelected: (selected) {
                   setState(() {
-                    _selectedTipo = selected ? 'workshop' : null;
+                    if (selected) {
+                      _selectedTipo = 'workshop';
+                    } else {
+                      _selectedTipo = null;
+                    }
+                    _selectedTag = null;
+                    _selectedPalestrante = null;
                   });
                   if (selected) {
                     eventProvider.filterByTipo('workshop');
@@ -165,6 +201,37 @@ class _ProgrammingScreenState extends State<ProgrammingScreen> {
         );
       },
     );
+  }
+
+  Future<void> _subscribeToActivity(BuildContext context, AtividadeModel atividade) async {
+    final userProvider = context.read<UserProvider>();
+    final agendaProvider = context.read<AgendaProvider>();
+
+    if (userProvider.currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Você precisa estar logado para se inscrever')),
+      );
+      return;
+    }
+
+    try {
+      await agendaProvider.addToAgenda(
+        userProvider.currentUser!.uid,
+        atividade.id,
+        0,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Atividade adicionada à sua agenda!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao inscrever: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildActivityCard(BuildContext context, AtividadeModel atividade) {
@@ -249,9 +316,69 @@ class _ProgrammingScreenState extends State<ProgrammingScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Navigate to activity details
+                  showDialog(
+                    context: context,
+                    builder: (dialogContext) => Dialog(
+                      insetPadding: const EdgeInsets.all(12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              atividade.titulo,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(height: 16),
+                            SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Palestrante: ${atividade.palestranteNome}'),
+                                  const SizedBox(height: 8),
+                                  Text('Descrição: ${atividade.descricao}'),
+                                  const SizedBox(height: 8),
+                                  Text('Local: ${atividade.local}'),
+                                  const SizedBox(height: 8),
+                                  Text('Horário: ${atividade.horaInicio.hour}:${atividade.horaInicio.minute.toString().padLeft(2, '0')} - ${atividade.horaFim.hour}:${atividade.horaFim.minute.toString().padLeft(2, '0')}'),
+                                  if (atividade.tags.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text('Tags: ${atividade.tags.join(', ')}'),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Align(
+                              alignment: Alignment.bottomRight,
+                              child: TextButton(
+                                onPressed: () => Navigator.pop(dialogContext),
+                                child: const Text('Fechar'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
                 },
                 child: const Text('Ver Detalhes'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _subscribeToActivity(context, atividade),
+                icon: const Icon(Icons.add),
+                label: const Text('Inscrever-se'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
               ),
             ),
           ],
