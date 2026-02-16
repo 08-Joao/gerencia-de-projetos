@@ -32,14 +32,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
     final eventProvider = context.read<EventProvider>();
 
     if (userProvider.currentUser != null) {
-      if (eventProvider.eventoAtual == null) {
-        await eventProvider.loadEventos();
-      }
-      
       await agendaProvider.loadAgenda(userProvider.currentUser!.uid);
-      if (eventProvider.eventoAtual != null) {
-        await eventProvider.loadAtividades(eventProvider.eventoAtual!.id);
-      }
+      await eventProvider.loadAtividades();
     }
   }
 
@@ -88,14 +82,15 @@ class _AgendaScreenState extends State<AgendaScreen> {
             itemCount: agenda.length,
             itemBuilder: (context, index) {
               final item = agenda[index];
-              final atividade = eventProvider.atividades.firstWhere(
+              final atividadeIndex = eventProvider.atividades.indexWhere(
                 (a) => a.id == item.atividadeId,
-                orElse: () => null as dynamic,
               );
 
-              if (atividade == null) {
+              if (atividadeIndex == -1) {
                 return const SizedBox.shrink();
               }
+
+              final atividade = eventProvider.atividades[atividadeIndex];
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),

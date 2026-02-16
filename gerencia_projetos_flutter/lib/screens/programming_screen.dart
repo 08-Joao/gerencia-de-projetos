@@ -27,14 +27,7 @@ class _ProgrammingScreenState extends State<ProgrammingScreen> {
 
   Future<void> _reloadActivities() async {
     final eventProvider = context.read<EventProvider>();
-    
-    if (eventProvider.eventoAtual == null) {
-      await eventProvider.loadEventos();
-    }
-    
-    if (eventProvider.eventoAtual != null) {
-      await eventProvider.loadAtividades(eventProvider.eventoAtual!.id);
-    }
+    await eventProvider.loadAtividades();
   }
 
   @override

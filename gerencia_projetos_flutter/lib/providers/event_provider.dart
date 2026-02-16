@@ -1,51 +1,26 @@
 import 'package:flutter/material.dart';
-import '../models/event_model.dart';
 import '../models/activity_model.dart';
 import '../services/firestore_service.dart';
 
 class EventProvider extends ChangeNotifier {
   final FirestoreService _firestoreService = FirestoreService();
 
-  List<EventoModel> _eventos = [];
   List<AtividadeModel> _atividades = [];
   List<AtividadeModel> _atividadesFiltradas = [];
   bool _isLoading = false;
   String? _error;
 
-  EventoModel? _eventoAtual;
-
   List<AtividadeModel> get atividades => _atividadesFiltradas.isEmpty ? _atividades : _atividadesFiltradas;
-  List<EventoModel> get eventos => _eventos;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  EventoModel? get eventoAtual => _eventoAtual;
 
-  Future<void> loadEventos() async {
+  Future<void> loadAtividades() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _eventos = await _firestoreService.getEventos();
-      if (_eventos.isNotEmpty) {
-        _eventoAtual = _eventos.first;
-        await loadAtividades(_eventoAtual!.id);
-      }
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> loadAtividades(String eventoId) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      _atividades = await _firestoreService.getAtividadesByEvento(eventoId);
+      _atividades = await _firestoreService.getAtividades();
       _atividadesFiltradas = [];
     } catch (e) {
       _error = e.toString();
@@ -110,19 +85,4 @@ class EventProvider extends ChangeNotifier {
     return palestrantes.toList();
   }
 
-  Future<void> createEvento(EventoModel evento) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      await _firestoreService.createEvento(evento);
-      await loadEventos();
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
 }

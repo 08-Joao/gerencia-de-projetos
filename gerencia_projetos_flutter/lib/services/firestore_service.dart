@@ -45,11 +45,10 @@ class FirestoreService {
   }
 
   // ===== ATIVIDADES =====
-  Future<List<AtividadeModel>> getAtividadesByEvento(String eventoId) async {
+  Future<List<AtividadeModel>> getAtividades() async {
     try {
       final snapshot = await _firestore
           .collection('atividades')
-          .where('eventoId', isEqualTo: eventoId)
           .where('publicada', isEqualTo: true)
           .get();
       final atividades = snapshot.docs.map((doc) => AtividadeModel.fromFirestore(doc)).toList();
@@ -84,6 +83,36 @@ class FirestoreService {
           .set(atividade.toFirestore());
     } catch (e) {
       throw 'Erro ao criar atividade: $e';
+    }
+  }
+
+  Future<List<AtividadeModel>> getAtividadesPendentes() async {
+    try {
+      final snapshot = await _firestore
+          .collection('atividades')
+          .where('publicada', isEqualTo: false)
+          .get();
+      final atividades = snapshot.docs.map((doc) => AtividadeModel.fromFirestore(doc)).toList();
+      atividades.sort((a, b) {
+        final dataCompare = a.data.compareTo(b.data);
+        if (dataCompare != 0) return dataCompare;
+        return a.horaInicio.compareTo(b.horaInicio);
+      });
+      return atividades;
+    } catch (e) {
+      print('Erro ao buscar atividades pendentes: $e');
+      return [];
+    }
+  }
+
+  Future<void> aprovarAtividade(String atividadeId) async {
+    try {
+      await _firestore
+          .collection('atividades')
+          .doc(atividadeId)
+          .update({'publicada': true});
+    } catch (e) {
+      throw 'Erro ao aprovar atividade: $e';
     }
   }
 
@@ -394,11 +423,10 @@ class FirestoreService {
     }
   }
 
-  Future<int> getTotalCheckins(String eventoId) async {
+  Future<int> getTotalCheckins() async {
     try {
       final snapshot = await _firestore
           .collection('checkins')
-          .where('eventoId', isEqualTo: eventoId)
           .get();
       return snapshot.docs.length;
     } catch (e) {

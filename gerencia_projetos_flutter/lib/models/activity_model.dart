@@ -4,7 +4,6 @@ enum TipoAtividade { palestra, minicurso, workshop }
 
 class AtividadeModel {
   final String id;
-  final String eventoId;
   final String titulo;
   final String descricao;
   final String palestranteId;
@@ -15,13 +14,10 @@ class AtividadeModel {
   final String local;
   final TipoAtividade tipo;
   final List<String> tags;
-  final int? capacidade;
   final bool publicada;
-  final String? materialApoio;
 
   AtividadeModel({
     required this.id,
-    required this.eventoId,
     required this.titulo,
     required this.descricao,
     required this.palestranteId,
@@ -32,16 +28,13 @@ class AtividadeModel {
     required this.local,
     required this.tipo,
     required this.tags,
-    this.capacidade,
     required this.publicada,
-    this.materialApoio,
   });
 
   factory AtividadeModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return AtividadeModel(
       id: doc.id,
-      eventoId: data['eventoId'] ?? '',
       titulo: data['titulo'] ?? '',
       descricao: data['descricao'] ?? '',
       palestranteId: data['palestranteId'] ?? '',
@@ -55,15 +48,12 @@ class AtividadeModel {
         orElse: () => TipoAtividade.palestra,
       ),
       tags: List<String>.from(data['tags'] ?? []),
-      capacidade: data['capacidade'],
       publicada: data['publicada'] ?? false,
-      materialApoio: data['materialApoio'],
     );
   }
 
   Map<String, dynamic> toFirestore() {
     return {
-      'eventoId': eventoId,
       'titulo': titulo,
       'descricao': descricao,
       'palestranteId': palestranteId,
@@ -74,15 +64,12 @@ class AtividadeModel {
       'local': local,
       'tipo': tipo.toString().split('.').last,
       'tags': tags,
-      'capacidade': capacidade,
       'publicada': publicada,
-      'materialApoio': materialApoio,
     };
   }
 
   AtividadeModel copyWith({
     String? id,
-    String? eventoId,
     String? titulo,
     String? descricao,
     String? palestranteId,
@@ -93,13 +80,10 @@ class AtividadeModel {
     String? local,
     TipoAtividade? tipo,
     List<String>? tags,
-    int? capacidade,
     bool? publicada,
-    String? materialApoio,
   }) {
     return AtividadeModel(
       id: id ?? this.id,
-      eventoId: eventoId ?? this.eventoId,
       titulo: titulo ?? this.titulo,
       descricao: descricao ?? this.descricao,
       palestranteId: palestranteId ?? this.palestranteId,
@@ -110,9 +94,7 @@ class AtividadeModel {
       local: local ?? this.local,
       tipo: tipo ?? this.tipo,
       tags: tags ?? this.tags,
-      capacidade: capacidade ?? this.capacidade,
       publicada: publicada ?? this.publicada,
-      materialApoio: materialApoio ?? this.materialApoio,
     );
   }
 }

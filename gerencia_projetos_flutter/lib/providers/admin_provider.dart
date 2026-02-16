@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/user_model.dart';
 import '../models/question_model.dart';
+import '../models/activity_model.dart';
 import '../models/aviso_model.dart';
 import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
@@ -12,6 +13,7 @@ class AdminProvider extends ChangeNotifier {
 
   List<UsuarioModel> _palestrantesPendentes = [];
   List<PerguntaModel> _perguntasPendentes = [];
+  List<AtividadeModel> _atividadesPendentes = [];
   List<UsuarioModel> _allUsers = [];
   int _totalParticipantes = 0;
   int _totalCheckins = 0;
@@ -22,6 +24,7 @@ class AdminProvider extends ChangeNotifier {
 
   List<UsuarioModel> get palestrantesPendentes => _palestrantesPendentes;
   List<PerguntaModel> get perguntasPendentes => _perguntasPendentes;
+  List<AtividadeModel> get atividadesPendentes => _atividadesPendentes;
   List<UsuarioModel> get allUsers => _allUsers;
   int get totalParticipantes => _totalParticipantes;
   int get totalCheckins => _totalCheckins;
@@ -30,7 +33,7 @@ class AdminProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<void> loadDashboardData(String eventoId) async {
+  Future<void> loadDashboardData() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -39,8 +42,9 @@ class AdminProvider extends ChangeNotifier {
       await Future.wait([
         _loadPalestrantesPendentes(),
         _loadPerguntasPendentes(),
+        _loadAtividadesPendentes(),
         _loadTotalParticipantes(),
-        _loadTotalCheckins(eventoId),
+        _loadTotalCheckins(),
         _loadTotalPalestrantes(),
         _loadTotalPalestrantesAprovados(),
       ]);
@@ -69,6 +73,24 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _loadAtividadesPendentes() async {
+    try {
+      _atividadesPendentes = await _firestoreService.getAtividadesPendentes();
+    } catch (e) {
+      print('Erro ao carregar atividades pendentes: $e');
+    }
+  }
+
+  Future<void> approveAtividade(String atividadeId) async {
+    try {
+      await _firestoreService.aprovarAtividade(atividadeId);
+      _atividadesPendentes.removeWhere((a) => a.id == atividadeId);
+      notifyListeners();
+    } catch (e) {
+      print('Erro ao aprovar atividade: $e');
+    }
+  }
+
   Future<void> _loadTotalParticipantes() async {
     try {
       _totalParticipantes = await _firestoreService.getTotalParticipantes();
@@ -77,9 +99,9 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadTotalCheckins(String eventoId) async {
+  Future<void> _loadTotalCheckins() async {
     try {
-      _totalCheckins = await _firestoreService.getTotalCheckins(eventoId);
+      _totalCheckins = await _firestoreService.getTotalCheckins();
     } catch (e) {
       print('Erro ao contar check-ins: $e');
     }

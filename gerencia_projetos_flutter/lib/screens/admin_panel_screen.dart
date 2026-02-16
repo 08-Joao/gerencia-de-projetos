@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 import '../providers/admin_provider.dart';
 import '../providers/user_provider.dart';
-import '../providers/event_provider.dart';
 import '../models/user_model.dart';
-import '../models/event_model.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({Key? key}) : super(key: key);
@@ -25,14 +22,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
   Future<void> _loadAdminData() async {
     final adminProvider = context.read<AdminProvider>();
-    final eventProvider = context.read<EventProvider>();
-
-    if (eventProvider.eventoAtual != null) {
-      await adminProvider.loadDashboardData(eventProvider.eventoAtual!.id);
-    } else {
-      await adminProvider.loadDashboardData('');
-    }
     
+    await adminProvider.loadDashboardData();
     await adminProvider.loadAllUsers();
   }
 
@@ -71,7 +62,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildTab(0, 'Dashboard'),
-            _buildTab(1, 'Eventos'),
+            _buildTab(1, 'Atividades'),
             _buildTab(2, 'Palestrantes'),
             _buildTab(3, 'Perguntas'),
             _buildTab(4, 'Avisos'),
@@ -116,7 +107,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       case 0:
         return _buildDashboard(adminProvider);
       case 1:
-        return _buildEventosTab();
+        return _buildAtividadesTab(adminProvider);
       case 2:
         return _buildSpeakersTab(adminProvider);
       case 3:
@@ -234,179 +225,93 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 
-  Widget _buildEventosTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Criar Novo Evento',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 16),
-          _buildEventForm(),
-        ],
-      ),
-    );
-  }
+  Widget _buildAtividadesTab(AdminProvider adminProvider) {
+    final atividades = adminProvider.atividadesPendentes;
 
-  Widget _buildEventForm() {
-    final nomeController = TextEditingController();
-    final descricaoController = TextEditingController();
-    DateTime dataInicio = DateTime.now();
-    DateTime dataFim = DateTime.now().add(const Duration(days: 1));
+    if (atividades.isEmpty) {
+      return Center(
+        child: Text(
+          'Nenhuma atividade pendente de aprovação',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
 
-    return StatefulBuilder(
-      builder: (context, setState) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: nomeController,
-              decoration: InputDecoration(
-                labelText: 'Nome do Evento',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: atividades.length,
+      itemBuilder: (context, index) {
+        final atividade = atividades[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  atividade.titulo,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: descricaoController,
-              decoration: InputDecoration(
-                labelText: 'Descrição',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 4),
+                Text(
+                  'Palestrante: ${atividade.palestranteNome}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[600],
+                      ),
                 ),
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 12),
-            InkWell(
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: dataInicio,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (date != null) {
-                  setState(() {
-                    dataInicio = date;
-                  });
-                }
-              },
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'Data de Início',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                const SizedBox(height: 4),
+                Text(
+                  'Tipo: ${atividade.tipo.toString().split('.').last}',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
-                child: Text(
-                  '${dataInicio.day}/${dataInicio.month}/${dataInicio.year}',
+                const SizedBox(height: 4),
+                Text(
+                  'Data: ${atividade.data.day}/${atividade.data.month}/${atividade.data.year}',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            InkWell(
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: dataFim,
-                  firstDate: dataInicio,
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (date != null) {
-                  setState(() {
-                    dataFim = date;
-                  });
-                }
-              },
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'Data de Fim',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                const SizedBox(height: 8),
+                Text(
+                  atividade.descricao,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                child: Text(
-                  '${dataFim.day}/${dataFim.month}/${dataFim.year}',
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Consumer<EventProvider>(
-              builder: (context, eventProvider, _) {
-                return SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => _createEvent(
-                      context,
-                      eventProvider,
-                      nomeController.text,
-                      descricaoController.text,
-                      dataInicio,
-                      dataFim,
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => _approveAtividade(context, adminProvider, atividade.id),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
+                      child: const Text('Aprovar'),
                     ),
-                    child: const Text('Criar Evento'),
-                  ),
-                );
-              },
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
   }
 
-  Future<void> _createEvent(
+  Future<void> _approveAtividade(
     BuildContext context,
-    EventProvider eventProvider,
-    String nome,
-    String descricao,
-    DateTime dataInicio,
-    DateTime dataFim,
+    AdminProvider adminProvider,
+    String atividadeId,
   ) async {
-    if (nome.isEmpty || descricao.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha todos os campos')),
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
+    await adminProvider.approveAtividade(atividadeId);
+    if (mounted) {
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Atividade aprovada com sucesso')),
       );
-      return;
-    }
-
-    if (dataFim.isBefore(dataInicio)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data de fim deve ser após data de início')),
-      );
-      return;
-    }
-
-    try {
-      final evento = EventoModel(
-        id: const Uuid().v4(),
-        nome: nome,
-        descricao: descricao,
-        dataInicio: dataInicio,
-        dataFim: dataFim,
-        ativo: true,
-      );
-
-      await eventProvider.createEvento(evento);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Evento criado com sucesso')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao criar evento: $e')),
-        );
-      }
     }
   }
 

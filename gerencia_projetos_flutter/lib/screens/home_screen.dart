@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (userProvider.currentUser == null) {
       await userProvider.loadCurrentUser();
     }
-    await eventProvider.loadEventos();
+    await eventProvider.loadAtividades();
   }
 
   @override
@@ -322,29 +322,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            Expanded(
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      Text(
-                        '${eventProvider.eventos.length}',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Eventos',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ],

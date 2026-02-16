@@ -29,10 +29,6 @@ class _SpeakerManagementScreenState extends State<SpeakerManagementScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    final eventProvider = context.read<EventProvider>();
-    if (eventProvider.eventoAtual == null) {
-      await eventProvider.loadEventos();
-    }
     await _loadMinhasPalestras();
   }
 
@@ -208,7 +204,7 @@ class _SpeakerManagementScreenState extends State<SpeakerManagementScreen> {
               Navigator.pop(dialogContext);
               await _loadMinhasPalestras();
               final eventProvider = context.read<EventProvider>();
-              await eventProvider.loadAtividades(atividade.eventoId);
+              await eventProvider.loadAtividades();
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Palestra criada com sucesso')),
@@ -552,20 +548,12 @@ class _ActivityFormDialogState extends State<_ActivityFormDialog> {
 
   void _saveActivity() {
     final userProvider = context.read<UserProvider>();
-    final eventProvider = context.read<EventProvider>();
 
     if (_tituloController.text.isEmpty ||
         _descricaoController.text.isEmpty ||
         _localController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Preencha todos os campos obrigatórios')),
-      );
-      return;
-    }
-
-    if (eventProvider.eventoAtual == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nenhum evento disponível. Tente novamente.')),
       );
       return;
     }
@@ -594,7 +582,6 @@ class _ActivityFormDialogState extends State<_ActivityFormDialog> {
 
     final atividade = AtividadeModel(
       id: widget.initialActivity?.id ?? const Uuid().v4(),
-      eventoId: eventProvider.eventoAtual!.id,
       titulo: _tituloController.text,
       descricao: _descricaoController.text,
       palestranteId: userProvider.currentUser!.uid,
@@ -607,9 +594,7 @@ class _ActivityFormDialogState extends State<_ActivityFormDialog> {
         (e) => e.toString().split('.').last == _tipoSelecionado,
       ),
       tags: tags,
-      capacidade: null,
-      publicada: widget.initialActivity == null ? true : _publicada,
-      materialApoio: null,
+      publicada: widget.initialActivity == null ? false : _publicada,
     );
 
     widget.onSave(atividade);
