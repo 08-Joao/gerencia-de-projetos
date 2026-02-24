@@ -53,6 +53,64 @@ flutter build apk
 
 O APK gerado estará em `build/app/outputs/apk/release/app-release.apk`
 
+## Configurando seu próprio Firebase
+
+**Importante**: Os arquivos de configuração Firebase (`google-services.json` para Android e `GoogleService-Info.plist` para iOS) já estão presentes no repositório e **não são excluídos do GitHub**. Você pode usá-los como referência para criar os seus próprios.
+
+Para usar a aplicação com seu próprio projeto Firebase, siga os passos abaixo:
+
+### 1. Criar um Projeto Firebase
+
+1. Acesse [Firebase Console](https://console.firebase.google.com/)
+2. Clique em "Adicionar projeto" ou "Create project"
+3. Digite um nome para seu projeto
+4. Siga as instruções para criar o projeto
+
+### 2. Configurar Android
+
+1. No Firebase Console, clique em "Adicionar app" e selecione **Android**
+2. Preencha os dados:
+   - **Nome do pacote**: Use o mesmo nome do pacote do seu projeto
+   - Você pode encontrar o nome do pacote em `android/app/build.gradle` (procure por `applicationId`)
+   - Como referência, veja o arquivo `android/app/google-services.json` existente no projeto para entender a estrutura esperada
+3. Baixe o arquivo `google-services.json` gerado pelo Firebase
+4. Substitua o arquivo existente em: `android/app/google-services.json`
+   - O arquivo que já existe no projeto é um exemplo da estrutura correta
+   - Seu novo arquivo terá as mesmas chaves, mas com valores específicos do seu projeto Firebase
+5. Clique em "Próximo" e siga as instruções de configuração
+
+### 3. Configurar iOS
+
+1. No Firebase Console, clique em "Adicionar app" e selecione **iOS**
+2. Preencha os dados:
+   - **Bundle ID**: `com.example.gerenciaDeProjectos` (ou seu próprio bundle)
+   - Você pode encontrar o Bundle ID em `ios/Runner.xcodeproj/project.pbxproj`
+3. Baixe o arquivo `GoogleService-Info.plist`
+4. Abra o Xcode:
+   ```bash
+   open ios/Runner.xcworkspace
+   ```
+5. Arraste o arquivo `GoogleService-Info.plist` para o projeto Xcode (certifique-se de marcar "Copy items if needed")
+6. Clique em "Próximo" e siga as instruções de configuração
+
+### 4. Ativar Serviços Firebase Necessários
+
+No Firebase Console, ative os seguintes serviços:
+
+- **Authentication** - Para login de usuários
+- **Cloud Firestore** - Para armazenar dados
+- **Cloud Messaging** - Para notificações push
+
+### 5. Executar a Aplicação
+
+Após configurar o Firebase, execute:
+
+```bash
+flutter clean
+flutter pub get
+flutter run
+```
+
 ## Estrutura do Projeto
 
 - `lib/` - Código-fonte da aplicação
